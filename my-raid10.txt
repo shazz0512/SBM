@@ -1,0 +1,33 @@
+sudo yum install mdadm
+
+sudo parted /dev/sdX mklabel gpt    # Replace X with the appropriate letter for each disk (a, b, c, d)
+sudo parted /dev/sdX mkpart primary 0% 100%
+
+Step 4: Create RAID 1 Arrays (mirrors)
+Now, we'll create two RAID 1 arrays, each consisting of two disks. These will be the mirrors that will form the RAID 10.
+sudo mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sda1 /dev/sdb1
+sudo mdadm --create /dev/md1 --level=1 --raid-devices=2 /dev/sdc1 /dev/sdd1
+
+Step 5: Create RAID 0 Array (stripe)
+Next, we'll create a RAID 0 array, which will stripe data across the two RAID 1 arrays.
+sudo mdadm --create /dev/md2 --level=0 --raid-devices=2 /dev/md0 /dev/md1
+
+Step 6: Format the RAID Array
+Now, let's format the RAID array (RAID 10) with the desired file system. For this example, we'll use ext4.
+sudo mkfs.ext4 /dev/md2
+
+Step 7: Mount the RAID Array
+Create a mount point and mount the RAID array:
+sudo mkdir /mnt/raid10
+sudo mount /dev/md2 /mnt/raid10
+
+Step 8: Configure /etc/fstab
+To mount the RAID array automatically at boot, add an entry to /etc/fstab:
+echo '/dev/md2   /mnt/raid10   ext4   defaults   0   0' | sudo tee -a /etc/fstab
+
+Step 9: Verify RAID Status
+You can check the RAID status and verify that all arrays are active and functioning correctly:
+sudo mdadm --detail /dev/md2
+
+
+ Remember that RAID 10 provides both mirroring and striping, offering good performance and fault tolerance. If one disk from each RAID 1 array fails, the RAID 10 will continue to function, but if both disks in the same RAID 1 array fail, the entire RAID 10 will be affected.
